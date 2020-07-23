@@ -17,6 +17,8 @@ import sys
 import googlemaps
 import geopy
 from geopy.geocoders import Nominatim
+import time
+from termcolor import colored
 
 def detect_OS(path):
 	"""
@@ -45,10 +47,10 @@ def extract_args():
 
 def get_data(): 
 	files = os.listdir(get_path())
-	#print(files)
-	data = {"date": [], "heure": [], "N": [], "W": [], "S": [], "E": []}
+	data = {"date": [], "heure": [], "N": [], "W": [], "S": [], "E": [], "name": []}
 	for file in files:
 		name, ext = os.path.splitext(file)
+		data["name"].append(name)
 		if ext.lower() == ".jpg":
 			img = Image.open(file)
 			exif = { ExifTags.TAGS[k]: v for k, v in img._getexif().items() if k in ExifTags.TAGS }
@@ -128,7 +130,7 @@ def DMStoDD(data):
 
 
 
-def get_GPS_info(data):#adapter avec S/E
+def get_GPS_info(data):
 
 	# méthode avec google API mais payant
 	"""reverse_geocode_result = []
@@ -140,44 +142,67 @@ def get_GPS_info(data):#adapter avec S/E
 			reverse_geocode_result.append("")
 	return reverse_geocode_result"""
 
-	# méthode avec geopy
+	# méthode avec geopy 
 	reverse_geocode_result = []
 	for i in range(len(data["N"])):
 		if data["N"][i] != "" and data["W"][i] != "" and data["S"][i] == "" and data["E"][i] == "":
 			locator = Nominatim(user_agent="openmapquest")
 			coordinates = "{}, {}".format(data["N"][i],data["W"][i])
-			location = locator.reverse(coordinates)
-			reverse_geocode_result.append(location.raw["display_name"])
-			#print(location.raw)
+			try:
+				location = locator.reverse(coordinates)
+				reverse_geocode_result.append(location.raw["display_name"])
+				print(data["name"][i] + " accepted...")
+			except Exception:
+				reverse_geocode_result.append("")
+				print(colored((data["name"][i] + " refused..."),"red"))
 		elif data["N"][i] == "" and data["W"][i] == "" and data["S"][i] != "" and data["E"][i] != "":
 			locator = Nominatim(user_agent="openmapquest")
 			coordinates = "{}, {}".format(data["S"][i],data["E"][i])
-			location = locator.reverse(coordinates)
-			reverse_geocode_result.append(location.raw["display_name"])
-			#print(location.raw)
+			try:
+				location = locator.reverse(coordinates)
+				reverse_geocode_result.append(location.raw["display_name"])
+				print(data["name"][i] + " accepted...")
+			except Exception:
+				reverse_geocode_result.append("")
+				print(colored((data["name"][i] + " refused..."),"red"))
 		elif data["N"][i] == "" and data["W"][i] != "" and data["S"][i] != "" and data["E"][i] == "":
 			locator = Nominatim(user_agent="openmapquest")
 			coordinates = "{}, {}".format(data["S"][i],data["W"][i])
-			location = locator.reverse(coordinates)
-			reverse_geocode_result.append(location.raw["display_name"])
-			#print(location.raw)
+			try:
+				location = locator.reverse(coordinates)
+				reverse_geocode_result.append(location.raw["display_name"])
+				print(data["name"][i] + " accepted...")
+			except Exception:
+				reverse_geocode_result.append("")
+				print(colored((data["name"][i] + " refused..."),"red"))
 		elif data["N"][i] != "" and data["W"][i] == "" and data["S"][i] == "" and data["E"][i] != "":
 			locator = Nominatim(user_agent="openmapquest")
 			coordinates = "{}, {}".format(data["N"][i],data["E"][i])
-			location = locator.reverse(coordinates)
-			reverse_geocode_result.append(location.raw["display_name"])
-			#print(location.raw)
+			try:
+				location = locator.reverse(coordinates)
+				reverse_geocode_result.append(location.raw["display_name"])
+				print(data["name"][i] + " accepted...")
+			except Exception:
+				reverse_geocode_result.append("")
+				print(colored((data["name"][i] + " refused..."),"red"))
 		else:
 			reverse_geocode_result.append("")
-		print("ok")
-		i+=1
+		time.sleep(0.5)
+	return sort_invalid_char(reverse_geocode_result)
+
+def sort_invalid_char(reverse_geocode_result,invalid_char = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']):#variable par défaut toujours après variable non connue
+	for i in range(len(reverse_geocode_result)):
+		for char in invalid_char:
+			if char not in reverse_geocode_result[i]:
+				continue
+			else:
+				reverse_geocode_result[i] = reverse_geocode_result[i].replace(char, '-')
 	return reverse_geocode_result
 
 
 def rename_photos(data, reverse_geocode_result):
 	i=0
 	files = os.listdir(get_path())
-	#print(files)
 	for file in files:
 		name, ext = os.path.splitext(file)
 		if data["N"][i] and data["W"][i] != "":
@@ -203,7 +228,7 @@ def main():
 	data = get_data()
 	DMStoDD(data)
 	#print(data)
-	reverse_geocode_result = get_GPS_info(data) #try catch
+	reverse_geocode_result = get_GPS_info(data)
 	#print(reverse_geocode_result)
 	rename_photos(data, reverse_geocode_result)
 
