@@ -1,0 +1,4 @@
+geographiclib==1.50
+geopy==2.0.0
+Pillow==7.2.0
+termcolor==1.1.0
