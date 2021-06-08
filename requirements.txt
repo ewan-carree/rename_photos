@@ -1,4 +1,4 @@
 geographiclib==1.50
 geopy==2.0.0
-Pillow==8.1.2
+Pillow==8.2.0
 termcolor==1.1.0
